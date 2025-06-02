@@ -1,0 +1,53 @@
+classDiagram
+    class Departamental {
+        +DOMContentLoaded()
+        +tabsContainer
+        +tabContentContainer
+    }
+
+    class Institucional {
+        +DOMContentLoaded()
+        +tableControlsContainer
+        +tableContentContainer
+        +exportButton
+        +filterButton
+    }
+
+    class Script {
+        +DOMContentLoaded()
+        +menuItems
+        +iframe
+        +loadFirstVisibleOption()
+        +profileMenu
+        +profileIcon
+    }
+
+    class Tutor {
+        +DOMContentLoaded()
+        +tabsContainer
+        +tabContentContainer
+        +addSubTabs()
+    }
+
+    class Usuarios {
+        +DOMContentLoaded()
+        +tableContentContainer
+        +renderTable(data)
+        +searchBar
+        +optionsButton
+        +addUserDialog
+    }
+
+    class UsuariosVer {
+        +DOMContentLoaded()
+        +tab
+        +subTab
+        +editButton
+        +editDialog
+        +editForm
+    }
+
+    Departamental --> Tutor : "Interacción con tabs"
+    Script --> Usuarios : "Carga de contenido en iframe"
+    Usuarios --> UsuariosVer : "Navegación a vista de usuario"
+    Tutor --> Institucional : "Relación con subpestañas"
