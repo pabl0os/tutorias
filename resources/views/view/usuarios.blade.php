@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <title>Gestión de Usuarios</title>
     <link rel="stylesheet" href="proyectoGestionProyectosSoftware/styles/usuarios.css">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 
 <body>
@@ -39,69 +40,72 @@
         <div id="table-content"></div>
     </main>
 
+    
+    @php
+        $rol = session('usuario')->Rol ?? '';
+        $areas = session('usuario')->areas ?? [];
+    @endphp
+
     <!-- Ventana de diálogo -->
     <div class="dialog-overlay" id="filter-dialog">
         <div class="dialog">
             <h2>Filtrar Usuarios</h2>
             <div class="dialog-content">
                 <div class="filter-columns">
-                    <!-- Columna de "Tipo" -->
-                    <div class="filter-column">
-                        <h3>Tipo</h3>
-                        <div class="radio-group">
-                            <label>
-                                <input type="radio" name="tipo" value="institucional" />
-                                Institucional
-                            </label>
-                            <label>
-                                <input type="radio" name="tipo" value="departamento" />
-                                Departamento
-                            </label>
-                            <label>
-                                <input type="radio" name="tipo" value="tutores" />
-                                Tutores
-                            </label>
+                    @if($rol === 'coordinador institucional')
+                        <!-- Solo columna de Carrera, muestra todas las opciones -->
+                        <div class="filter-column">
+                            <h3>Carrera</h3>
+                            <div class="radio-group">
+                                <label><input type="radio" name="carrera" value="industrial" /> Industrial</label>
+                                <label><input type="radio" name="carrera" value="sistemas" /> Sistemas</label>
+                                <label><input type="radio" name="carrera" value="tic" /> TIC</label>
+                                <label><input type="radio" name="carrera" value="gestion" /> Gestión</label>
+                                <label><input type="radio" name="carrera" value="electronica" /> Electrónica</label>
+                                <label><input type="radio" name="carrera" value="electromecanica" /> Electromecánica</label>
+                                <label><input type="radio" name="carrera" value="mecatronica" /> Mecatrónica</label>
+                                <label><input type="radio" name="carrera" value="logistica" /> Logística</label>
+                            </div>
                         </div>
-                    </div>
-
-                    <!-- Columna de "Carrera" -->
-                    <div class="filter-column">
-                        <h3>Carrera</h3>
-                        <div class="radio-group">
-                            <label>
-                                <input type="radio" name="carrera" value="industrial" />
-                                Industrial
-                            </label>
-                            <label>
-                                <input type="radio" name="carrera" value="sistemas" />
-                                Sistemas
-                            </label>
-                            <label>
-                                <input type="radio" name="carrera" value="tic" />
-                                TIC
-                            </label>
-                            <label>
-                                <input type="radio" name="carrera" value="gestion" />
-                                Gestión
-                            </label>
-                            <label>
-                                <input type="radio" name="carrera" value="electronica" />
-                                Electrónica
-                            </label>
-                            <label>
-                                <input type="radio" name="carrera" value="electromecanica" />
-                                Electromecánica
-                            </label>
-                            <label>
-                                <input type="radio" name="carrera" value="mecatronica" />
-                                Mecatrónica
-                            </label>
-                            <label>
-                                <input type="radio" name="carrera" value="logistica" />
-                                Logística
-                            </label>
+                    @elseif($rol === 'coordinador departamental')
+                        <!-- Solo columna de Carrera, solo las áreas de adscripción del usuario -->
+                        <div class="filter-column">
+                            <h3>Carrera</h3>
+                            <div class="radio-group">
+                                @foreach($areas as $area)
+                                    <label>
+                                        <input type="radio" name="carrera" value="{{ strtolower(str_replace([' ', 'á', 'é', 'í', 'ó', 'ú', 'ñ'], ['_', 'a', 'e', 'i', 'o', 'u', 'n'], $area)) }}" />
+                                        {{ $area }}
+                                    </label>
+                                @endforeach
+                            </div>
                         </div>
-                    </div>
+                    @else
+                        <!-- Otros roles: muestra ambas columnas como antes -->
+                        <!-- Columna de "Tipo" -->
+                        <div class="filter-column">
+                            <h3>Tipo</h3>
+                            <div class="radio-group">
+                                <label><input type="radio" name="tipo" value="institucional" /> Institucional</label>
+                                <label><input type="radio" name="tipo" value="departamento" /> Departamento</label>
+                                <label><input type="radio" name="tipo" value="tutores" /> Tutores</label>
+                            </div>
+                        </div>
+                        <!-- Columna de "Carrera" -->
+                        <div class="filter-column">
+                            <h3>Carrera</h3>
+                            <div class="radio-group">
+                                <label><input type="radio" name="carrera" value="industrial" /> Industrial</label>
+                                <label><input type="radio" name="carrera" value="sistemas" /> Sistemas</label>
+                                <label><input type="radio" name="carrera" value="tic" /> TIC</label>
+                                <label><input type="radio" name="carrera" value="gestion" /> Gestión</label>
+                                <label><input type="radio" name="carrera" value="electronica" /> Electrónica</label>
+                                <label><input type="radio" name="carrera" value="electromecanica" /> Electromecánica</label>
+                                <label><input type="radio" name="carrera" value="mecatronica" /> Mecatrónica</label>
+                                <label><input type="radio" name="carrera" value="logistica" /> Logística</label>
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
             <div class="dialog-actions">
@@ -130,7 +134,7 @@
                     </div>
 
                     <!-- Lista desplegable para la carrera -->
-                    <div class="form-group">
+                    <div class="form-group" id="career-group">
                         <label for="user-career">Carrera</label>
                         <select id="user-career" name="user-career" required>
                             <option value="" disabled selected>Seleccione una carrera</option>
@@ -150,10 +154,17 @@
                         <label for="user-role">Rol</label>
                         <select id="user-role" name="user-role" required>
                             <option value="" disabled selected>Seleccione un rol</option>
-                            <option value="cordinador-institucional">Coordinador Institucional</option>
-                            <option value="cordinador-departamental">Coordinador Departamental</option>
+                            <option value="administrador">Administrador</option>
+                            <option value="coordinador institucional">Coordinador Institucional</option>
+                            <option value="coordinador departamental">Coordinador Departamental</option>
                             <option value="tutor">Tutor</option>
                         </select>
+                    </div>
+
+                    <!-- Campo para la contraseña -->
+                    <div class="form-group">
+                        <label for="user-password">Contraseña</label>
+                        <input type="password" id="user-password" name="user-password" placeholder="Ingrese la contraseña" required />
                     </div>
                 </form>
             </div>
@@ -164,7 +175,7 @@
         </div>
     </div>
 
-    <!-- Diálogo de confirmación para eliminar usuario -->
+    <!-- Diálogo de confirmación para eliminar usuario
     <dialog id="delete-user-dialog">
         <form method="dialog">
             <h3>¿Estás seguro de eliminar este usuario?</h3>
@@ -173,9 +184,12 @@
                 <button id="cancel-delete" type="button">Cancelar</button>
             </div>
         </form>
-    </dialog>
+    </dialog> -->
 
     <script src="proyectoGestionProyectosSoftware/controller/usuarios.js"></script>
+    <script>
+        window.usuarios = {!! $usuariosJson ?? '[]' !!};
+    </script>
 </body>
 
 </html>

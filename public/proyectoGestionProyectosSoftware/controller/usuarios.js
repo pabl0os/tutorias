@@ -1,12 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
     const tableContentContainer = document.getElementById("table-content");
-
-    // Datos de ejemplo para la tabla
-    const usuarios = [
-        { nombre: "Andrea López", correo: "andrea.lopez@example.com" },
-        { nombre: "Miguel Torres", correo: "miguel.torres@example.com" },
-        { nombre: "Sofía Martínez", correo: "sofia.martinez@example.com" }
-    ];
+    const searchBar = document.getElementById("search-bar");
 
     // Función para renderizar la tabla
     function renderTable(data) {
@@ -18,42 +12,62 @@ document.addEventListener("DOMContentLoaded", () => {
                 <tr>
                     <th>Nombre</th>
                     <th>Correo</th>
+                    <th>Rol</th>
+                    <th>Carrera</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 ${data
-                    .map(
-                        (row, i) => `
-                        <tr>
-                            <td>${row.nombre}</td>
-                            <td>${row.correo}</td>
-                            <td>
-                                <button class="action-button view-btn">
-                                    <img src="proyectoGestionProyectosSoftware/icons/botones/ver.svg" alt="Ver" />
-                                </button>
-                                <button class="action-button delete-btn" data-index="${i}">
-                                    <img src="proyectoGestionProyectosSoftware/icons/botones/eliminar.svg" alt="Eliminar" />
-                                </button>
-                            </td>
-                        </tr>
-                    `
-                    )
-                    .join("")}
+                .map(
+                    (row) => `
+                            <tr>
+                                <td>${row.nombre || "Sin nombre"}</td>
+                                <td>${row.correo || "Sin correo"}</td>
+                                <td>${row.rol || "Sin rol"}</td>
+                                <td>${row.carrera || "Sin carrera"}</td>
+                                <td>
+                                    <button class="action-button view-btn" data-id="${row.id}">
+                                        <img src="proyectoGestionProyectosSoftware/icons/botones/ver.svg" alt="Ver" />
+                                    </button>
+                                    <button class="action-button delete-btn" data-id="${row.id}">
+                                        <img src="proyectoGestionProyectosSoftware/icons/botones/eliminar.svg" alt="Eliminar" />
+                                    </button>
+                                </td>
+                            </tr>
+                        `
+                )
+                .join("")}
             </tbody>
         `;
 
         tableContentContainer.appendChild(table);
     }
 
+    // Función para obtener los usuarios actualizados desde el backend
+    async function fetchUpdatedUsuarios() {
+        try {
+            const response = await fetch('/usuarios/lista');
+            if (response.ok) {
+                const updatedUsuarios = await response.json();
+                window.usuarios = updatedUsuarios; // Actualizar el array global
+                renderTable(window.usuarios); // Renderizar la tabla con los datos actualizados
+            } else {
+                console.error("Error al obtener los datos actualizados.");
+                alert("Error al actualizar la tabla.");
+            }
+        } catch (error) {
+            console.error("Error al obtener los usuarios:", error);
+        }
+    }
+
     // Renderizar la tabla inicial
-    renderTable(usuarios);
+    fetchUpdatedUsuarios();
 
     // Agregar funcionalidad de búsqueda
-    const searchBar = document.getElementById("search-bar");
     searchBar.addEventListener("input", () => {
         const query = searchBar.value.toLowerCase();
-        const filteredData = usuarios.filter(user =>
+        const filteredData = window.usuarios.filter(user =>
             user.nombre.toLowerCase().includes(query) ||
             user.correo.toLowerCase().includes(query)
         );
@@ -135,6 +149,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const addUserDialog = document.getElementById("add-user-dialog");
     const addUserCancel = document.getElementById("add-user-cancel");
     const addUserSubmit = document.getElementById("add-user-submit");
+    const userRoleSelect = document.getElementById("user-role");
+    const userCareerSelect = document.getElementById("user-career");
 
     addButton.addEventListener("click", () => {
         addUserDialog.style.display = "flex"; // Mostrar la ventana
@@ -152,38 +168,76 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // Cambiar el campo "Carrera" a múltiple solo si el rol es "Coordinador Departamental"
+    userRoleSelect.addEventListener("change", () => {
+        if (userRoleSelect.value === "coordinador departamental") {
+            userCareerSelect.setAttribute("multiple", "multiple");
+        } else {
+            userCareerSelect.removeAttribute("multiple");
+        }
+    });
+
     // Manejar el evento de agregar usuario
-    addUserSubmit.addEventListener("click", (event) => {
+    addUserSubmit.addEventListener("click", async (event) => {
         event.preventDefault(); // Evitar el envío del formulario
 
         // Obtener los valores de los campos
         const userName = document.getElementById("user-name").value;
         const userEmail = document.getElementById("user-email").value;
-        const userCareer = document.getElementById("user-career").value;
-        const userRole = document.getElementById("user-role").value;
+        const userRole = userRoleSelect.value;
+        const userPassword = document.getElementById("user-password").value;
+
+        // Obtener las carreras seleccionadas (como array si es múltiple)
+        const userCareer = userCareerSelect.hasAttribute("multiple")
+            ? Array.from(userCareerSelect.selectedOptions).map(option => option.value)
+            : [userCareerSelect.value];
 
         // Validar que todos los campos estén llenos
-        if (!userName || !userEmail || !userCareer || !userRole) {
+        if (!userName || !userEmail || !userRole || !userPassword || userCareer.length === 0) {
             alert("Por favor, complete todos los campos.");
             return;
         }
 
-        // Agregar el nuevo usuario a la tabla
-        usuarios.push({
+        // Crear el objeto de datos para enviar al backend
+        const userData = {
             nombre: userName,
             correo: userEmail,
-            carrera: userCareer,
             rol: userRole,
-        });
+            contrasena: userPassword,
+            carreras: userCareer,
+        };
 
-        // Actualizar la tabla
-        renderTable(usuarios);
+        console.log("Datos enviados al backend:", userData);
 
-        // Cerrar la ventana de diálogo
-        addUserDialog.style.display = "none";
+        try {
+            const response = await fetch('/usuarios/agregar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                },
+                body: JSON.stringify(userData),
+            });
 
-        // Limpiar el formulario
-        document.getElementById("add-user-form").reset();
+            if (response.ok) {
+                const result = await response.json();
+                alert(result.message || "Usuario registrado exitosamente.");
+                // Actualizar la tabla con el nuevo usuario
+                window.usuarios.push(userData);
+                renderTable(window.usuarios);
+                // Cerrar la ventana de diálogo
+                document.getElementById("add-user-dialog").style.display = "none";
+                // Limpiar el formulario
+                document.getElementById("add-user-form").reset();
+            } else {
+                const errorText = await response.text();
+                console.error("Error del servidor:", errorText);
+                alert("Error al registrar el usuario.");
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            alert("Ocurrió un error al registrar el usuario.");
+        }
     });
 
     // Delegación de eventos para detectar click en el botón con el icono "Ver"
@@ -199,29 +253,73 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Delegación de eventos para eliminar usuario
-    tableContentContainer.addEventListener("click", (event) => {
+    tableContentContainer.addEventListener("click", async (event) => {
         const deleteBtn = event.target.closest("button.delete-btn");
         if (deleteBtn) {
-            const userIndex = parseInt(deleteBtn.dataset.index, 10);
-            const deleteDialog = document.getElementById("delete-user-dialog");
-            const confirmDelete = document.getElementById("confirm-delete");
-            const cancelDelete = document.getElementById("cancel-delete");
+            const row = deleteBtn.closest("tr"); // Obtener el renglón de la tabla
+            const userName = row.querySelector("td:nth-child(1)").textContent.trim(); // Nombre
+            const userEmail = row.querySelector("td:nth-child(2)").textContent.trim(); // Correo
 
-            deleteDialog.showModal();
+            const confirmDelete = confirm(`¿Estás seguro de que deseas eliminar al usuario "${userName}" (${userEmail})?`);
+            if (confirmDelete) {
+                try {
+                    const response = await fetch('/usuarios/eliminar', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        },
+                        body: JSON.stringify({ nombre: userName, correo: userEmail }),
+                    });
 
-            // Limpiar eventos anteriores
-            confirmDelete.onclick = null;
-            cancelDelete.onclick = null;
+                    if (response.ok) {
+                        alert("Usuario eliminado exitosamente.");
+                        await fetchUpdatedUsuarios(); // Actualizar los usuarios después de eliminar
+                    } else {
+                        const errorText = await response.text();
+                        console.error("Error del servidor:", errorText);
+                        alert("Error al eliminar el usuario.");
+                    }
+                } catch (error) {
+                    console.error("Error:", error);
+                    alert("Ocurrió un error al eliminar el usuario.");
+                }
+            }
+        }
+    });
 
-            confirmDelete.onclick = () => {
-                usuarios.splice(userIndex, 1); // Elimina el usuario del array
-                renderTable(usuarios);         // Vuelve a renderizar la tabla
-                deleteDialog.close();
-            };
 
-            cancelDelete.onclick = () => {
-                deleteDialog.close();
-            };
+    // PENDIENTE POR CHECAR ES CUANDO SE LE DA CLICK AL BOTÓN VER
+    tableContentContainer.addEventListener("click", async (event) => {
+        const viewBtn = event.target.closest("button.view-btn");
+        if (viewBtn) {
+            const row = viewBtn.closest("tr"); // Obtener el renglón de la tabla
+            const userName = row.querySelector("td:nth-child(1)").textContent.trim(); // Nombre
+            const userEmail = row.querySelector("td:nth-child(2)").textContent.trim(); // Correo
+            const userRole = row.querySelector("td:nth-child(3)").textContent.trim(); // Rol
+            const userCareer = row.querySelector("td:nth-child(4)").textContent.trim(); // Carrera
+
+            console.log("Datos enviados:", {
+                nombre: userName,
+                correo: userEmail,
+                rol: userRole,
+                carrera: userCareer,
+            });
+            try {
+                // Realizar la consulta al backend para obtener los datos del usuario
+                const response = await fetch(`/usuarios/ver?nombre=${userName}&correo=${userEmail}&rol=${userRole}`);
+
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    console.log("Datos del usuario:", userData); // Imprimir los datos en la consola
+                } else {
+                    const errorText = await response.text();
+                    console.error("Error al obtener los datos del usuario:", errorText);
+                }
+            } catch (error) {
+                console.error("Error al realizar la consulta:", error);
+            }
         }
     });
 });

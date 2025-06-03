@@ -4,20 +4,28 @@
 <head>
     <meta charset="UTF-8">
     <title>Perfil</title>
-    <link rel="stylesheet" href="../styles/perfil.css">
+    <link rel="stylesheet" href="{{ asset('proyectoGestionProyectosSoftware/styles/perfil.css') }}">
 </head>
 
 <body>
     <header class="navbar">
-        <button class="logout-button">Salir</button>
+        
     </header>
 
     <main class="profile-container">
         <div class="profile-info">
-            <p>Nombre</p>
-            <p>Correo</p>
-            <p>Área de adscripción</p>
+            <p><strong>Nombre:</strong> {{ session('usuario')->Nombre ?? '' }}</p>
+            <p><strong>Correo:</strong> {{ session('usuario')->Correo ?? '' }}</p>
+            <p><strong>Rol:</strong> {{ session('usuario')->Rol ?? '' }}</p>
+            <p><strong>Área de adscripción:</strong>
+                @if(!empty(session('usuario')->areas))
+                    {{ implode(', ', session('usuario')->areas) }}
+                @else
+                    No asignada
+                @endif
+            </p>
         </div>
+        <button class="logout-button" onclick="window.top.location.href='{{ url('logout') }}'">Salir</button>
     </main>
 </body>
 

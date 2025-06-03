@@ -1,57 +1,38 @@
-
+<!-- filepath: c:\Users\pabli\Desktop\gestionProyectosSoftware\tutorias\resources\views\index.blade.php -->
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Página con Navbar y Sidebar</title>
+    <title>Login</title>
     <link rel="stylesheet" href="{{ asset('proyectoGestionProyectosSoftware/styles/estilos.css') }}">
+    <style>
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; background: #f5f5f5; }
+        .login-container { background: #fff; padding: 2rem 2.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .login-container h2 { margin-bottom: 1.5rem; }
+        .login-container label { display: block; margin-bottom: 0.5rem; }
+        .login-container input { width: 100%; padding: 0.5rem; margin-bottom: 1rem; border: 1px solid #ccc; border-radius: 4px; }
+        .login-container button { width: 100%; padding: 0.7rem; background: #007bff; color: #fff; border: none; border-radius: 4px; font-size: 1rem; }
+        .login-container button:hover { background: #0056b3; }
+    </style>
 </head>
-
 <body>
-    <!-- Barra superior -->
-    <header class="navbar">
-        <div class="navbar-logos">
-            <img src="{{ asset('proyectoGestionProyectosSoftware/images/pleca_tecnm.jpg') }}" alt="Logo TecNM" class="logo">
-            <img src="{{ asset('proyectoGestionProyectosSoftware/images/logo_itl.png') }}" alt="Logo ITL" class="logo">
-            <img src="{{ asset('proyectoGestionProyectosSoftware/images/logo96x96.png') }}" alt="Logo ITL" class="logo">
-        </div>
-        <div class="profile-menu">
-            <img src="{{ asset('proyectoGestionProyectosSoftware/icons/perfil.svg') }}" alt="Icono Perfil" class="profile-icon">
-            <div class="profile-dropdown">
-                <iframe src="{{ url('perfil') }}" frameborder="0" style="width: 100%; height: 100%;"></iframe>
+    <div class="login-container">
+        <h2>Iniciar Sesión</h2>
+        @if($errors->any())
+            <div style="color: red; margin-bottom: 1rem;">
+                {{ $errors->first() }}
             </div>
-        </div>
-    </header>
+        @endif
+        <form method="POST" action="{{ url('login') }}">
+            @csrf
+            <label for="correo">Correo electrónico</label>
+            <input type="email" id="correo" name="correo" required>
 
-    <!-- Contenedor principal -->
-    <div class="container">
-        <!-- Barra lateral con menú -->
-        <nav class="sidebar">
-            <ul class="menu">
-                <li class="menu-item" data-url="{{ url('tutor') }}">
-                    <img src="{{ asset('proyectoGestionProyectosSoftware/icons/tutor.svg') }}" alt="Icono tutor" class="menu-icon">
-                </li>
-                <li class="menu-item" data-url="{{ url('departamental') }}">
-                    <img src="{{ asset('proyectoGestionProyectosSoftware/icons/departamental.svg') }}" alt="Icono departamental" class="menu-icon">
-                </li>
-                <li class="menu-item" data-url="{{ url('institucional') }}">
-                    <img src="{{ asset('proyectoGestionProyectosSoftware/icons/institucional.svg') }}" alt="Icono institucional" class="menu-icon">
-                </li>
-                <li class="menu-item" data-url="{{ url('usuarios') }}">
-                    <img src="{{ asset('proyectoGestionProyectosSoftware/icons/usuarios.svg') }}" alt="Icono usuarios" class="menu-icon">
-                </li>
-            </ul>
-        </nav>
+            <label for="contrasena">Contraseña</label>
+            <input type="password" id="contrasena" name="contrasena" required>
 
-        <!-- Contenido principal con iframe -->
-        <main class="content">
-            <iframe src="{{ url('perfil') }}" name="contenido" frameborder="0" style="width: 100%; height: 100%;"></iframe>
-        </main>
+            <button type="submit">Entrar</button>
+        </form>
     </div>
-
-    <script src="{{ asset('proyectoGestionProyectosSoftware/controller/script.js') }}"></script>
-
 </body>
 </html>
