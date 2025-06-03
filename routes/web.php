@@ -243,13 +243,50 @@ Route::post('/usuarios/eliminar', function (Request $request) {
 });
 Route::get('/usuarios/lista', function () {
     try {
-        // Consulta para obtener todos los usuarios con sus áreas de adscripción
-        $usuarios = DB::table('Usuario')
-            ->leftJoin('UsuarioArea', 'Usuario.Id_usuario', '=', 'UsuarioArea.Id_usuario')
-            ->select('Usuario.Id_usuario as id', 'Usuario.Nombre as nombre', 'Usuario.Correo as correo', 'Usuario.Rol as rol', 'UsuarioArea.Area_suscripcion as carrera')
-            ->get();
+        $usuario = session('usuario');
+        if (!$usuario) {
+            return response()->json([], 401);
+        }
 
-        return response()->json($usuarios);
+        $usuarios = [];
+
+        if ($usuario->Rol === 'administrador') {
+            $usuarios = DB::table('Usuario')
+                ->leftJoin('UsuarioArea', 'Usuario.Id_usuario', '=', 'UsuarioArea.Id_usuario')
+                ->select('Usuario.Id_usuario as id', 'Usuario.Nombre as nombre', 'Usuario.Correo as correo', 'Usuario.Rol as rol', 'UsuarioArea.Area_suscripcion as carrera')
+                ->get();
+        } elseif ($usuario->Rol === 'coordinador institucional') {
+            $usuarios = DB::table('Usuario')
+                ->leftJoin('UsuarioArea', 'Usuario.Id_usuario', '=', 'UsuarioArea.Id_usuario')
+                ->where('Usuario.Rol', 'coordinador departamental')
+                ->select('Usuario.Id_usuario as id', 'Usuario.Nombre as nombre', 'Usuario.Correo as correo', 'Usuario.Rol as rol', 'UsuarioArea.Area_suscripcion as carrera')
+                ->get();
+        } elseif ($usuario->Rol === 'coordinador departamental') {
+            $areas = $usuario->areas ?? [];
+            $usuarios = DB::table('Usuario')
+                ->join('UsuarioArea', 'Usuario.Id_usuario', '=', 'UsuarioArea.Id_usuario')
+                ->where('Usuario.Rol', 'tutor')
+                ->whereIn('UsuarioArea.Area_suscripcion', $areas)
+                ->select('Usuario.Id_usuario as id', 'Usuario.Nombre as nombre', 'Usuario.Correo as correo', 'Usuario.Rol as rol', 'UsuarioArea.Area_suscripcion as carrera')
+                ->get();
+        }
+
+        // Agrupa por correo para evitar duplicados
+        $usuariosAgrupados = [];
+        foreach ($usuarios as $u) {
+            $key = $u->correo;
+            if (!isset($usuariosAgrupados[$key])) {
+                $usuariosAgrupados[$key] = [
+                    'id' => $u->id,
+                    'nombre' => $u->nombre,
+                    'correo' => $u->correo,
+                    'rol'    => $u->rol,
+                    'carrera' => $u->carrera ?? '',
+                ];
+            }
+        }
+
+        return response()->json(array_values($usuariosAgrupados));
     } catch (\Exception $e) {
         return response()->json(['error' => $e->getMessage()], 500);
     }

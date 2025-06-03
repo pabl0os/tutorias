@@ -189,6 +189,8 @@
     <script src="proyectoGestionProyectosSoftware/controller/usuarios.js"></script>
     <script>
         window.usuarios = {!! $usuariosJson ?? '[]' !!};
+        const userRole = "{{ $rol }}"; // Rol del usuario que ingresó
+        const userAreas = @json($areas); // Áreas del usuario que ingresó
     </script>
 </body>
 

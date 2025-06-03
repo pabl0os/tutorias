@@ -151,6 +151,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const addUserSubmit = document.getElementById("add-user-submit");
     const userRoleSelect = document.getElementById("user-role");
     const userCareerSelect = document.getElementById("user-career");
+    const dialogTitle = addUserDialog.querySelector("h2");
+    const careerGroup = document.getElementById("career-group");
 
     addButton.addEventListener("click", () => {
         addUserDialog.style.display = "flex"; // Mostrar la ventana
@@ -176,6 +178,25 @@ document.addEventListener("DOMContentLoaded", () => {
             userCareerSelect.removeAttribute("multiple");
         }
     });
+
+    // Ajustar el contenido de la ventana de diálogo según el rol del usuario
+    if (userRole === "coordinador institucional") {
+        dialogTitle.textContent = "Registrar Coordinador de Departamento";
+        userRoleSelect.parentElement.style.display = "none"; // Ocultar el campo de Rol
+        userCareerSelect.setAttribute("multiple", "multiple"); // Mantener el select como múltiple
+    } else if (userRole === "coordinador departamental") {
+        dialogTitle.textContent = "Registrar Tutor";
+        userRoleSelect.parentElement.style.display = "none"; // Ocultar el campo de Rol
+
+        // Mostrar solo las carreras que administra el coordinador departamental
+        userCareerSelect.innerHTML = ""; // Limpiar las opciones actuales
+        userAreas.forEach((area) => {
+            const option = document.createElement("option");
+            option.value = area.toLowerCase().replace(/ /g, "_"); // Transformar el área
+            option.textContent = area;
+            userCareerSelect.appendChild(option);
+        });
+    }
 
     // Manejar el evento de agregar usuario
     addUserSubmit.addEventListener("click", async (event) => {
