@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Gestión de Usuarios</title>
-    <link rel="stylesheet" href="proyectoGestionProyectosSoftware/styles/usuarios.css">
+    <link rel="stylesheet" href="{{ asset('proyectoGestionProyectosSoftware/styles/usuarios.css') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 
@@ -186,7 +186,7 @@
         </form>
     </dialog> -->
 
-    <script src="proyectoGestionProyectosSoftware/controller/usuarios.js"></script>
+    <script src="{{ asset('proyectoGestionProyectosSoftware/controller/usuarios.js') }}"></script>
     <script>
         window.usuarios = {!! $usuariosJson ?? '[]' !!};
         const userRole = "{{ $rol }}"; // Rol del usuario que ingresó
