@@ -170,29 +170,90 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Cambiar el campo "Carrera" a múltiple solo si el rol es "Coordinador Departamental"
+    // Cambiar el campo "Carrera" a múltiple solo si el rol es "coordinador institucional"
     userRoleSelect.addEventListener("change", () => {
-        if (userRoleSelect.value === "coordinador departamental") {
+        if (userRoleSelect.value === "coordinador institucional") {
             userCareerSelect.setAttribute("multiple", "multiple");
         } else {
             userCareerSelect.removeAttribute("multiple");
         }
+
+        // Si es coordinador departamental, modificar las opciones
+        if (userRoleSelect.value === "coordinador departamental") {
+            userCareerSelect.innerHTML = `
+                <option value="" disabled selected>Seleccione una carrera</option>
+                <option value="industrial">Industrial</option>
+                <option value="tic_sistemas">TIC y Sistemas</option>
+                <option value="gestion">Gestión</option>
+                <option value="electronica">Electrónica</option>
+                <option value="electromecanica">Electromecánica</option>
+                <option value="mecatronica">Mecatrónica</option>
+                <option value="logistica">Logística</option>
+            `;
+        } else {
+            // Opciones normales
+            userCareerSelect.innerHTML = `
+                <option value="" disabled selected>Seleccione una carrera</option>
+                <option value="industrial">Industrial</option>
+                <option value="sistemas">Sistemas</option>
+                <option value="tic">TIC</option>
+                <option value="gestion">Gestión</option>
+                <option value="electronica">Electrónica</option>
+                <option value="electromecanica">Electromecánica</option>
+                <option value="mecatronica">Mecatrónica</option>
+                <option value="logistica">Logística</option>
+            `;
+        }
     });
 
-    // Ajustar el contenido de la ventana de diálogo según el rol del usuario
+    // Ajustar el contenido de la ventana de diálogo según el rol del usuario actual
     if (userRole === "coordinador institucional") {
         dialogTitle.textContent = "Registrar Coordinador de Departamento";
         userRoleSelect.parentElement.style.display = "none"; // Ocultar el campo de Rol
-        userCareerSelect.setAttribute("multiple", "multiple"); // Mantener el select como múltiple
+
+        // Mostrar solo las carreras para coordinador departamental (con TIC y Sistemas juntos)
+        userCareerSelect.removeAttribute("multiple");
+        userCareerSelect.innerHTML = `
+            <option value="" disabled selected>Seleccione una carrera</option>
+            <option value="industrial">Industrial</option>
+            <option value="tic_sistemas">TIC y Sistemas</option>
+            <option value="gestion">Gestión</option>
+            <option value="electronica">Electrónica</option>
+            <option value="electromecanica">Electromecánica</option>
+            <option value="mecatronica">Mecatrónica</option>
+            <option value="logistica">Logística</option>
+        `;
     } else if (userRole === "coordinador departamental") {
         dialogTitle.textContent = "Registrar Tutor";
         userRoleSelect.parentElement.style.display = "none"; // Ocultar el campo de Rol
 
         // Mostrar solo las carreras que administra el coordinador departamental
         userCareerSelect.innerHTML = ""; // Limpiar las opciones actuales
+
+        // Opción inicial
+        const initialOption = document.createElement("option");
+        initialOption.value = "";
+        initialOption.disabled = true;
+        initialOption.selected = true;
+        initialOption.textContent = "Seleccione una carrera";
+        userCareerSelect.appendChild(initialOption);
+
+        // Mapeo frontend -> value para que coincida con la base de datos
+        const areaValueMap = {
+            "Ingeniería Industrial": "industrial",
+            "Ingeniería en Sistemas Computacionales": "sistemas",
+            "Ingeniería en Tecnologías de la Información y Comunicaciones": "tic",
+            "Ingeniería en Gestión Empresarial": "gestion",
+            "Ingeniería Electrónica": "electronica",
+            "Ingeniería Electromecánica": "electromecanica",
+            "Ingeniería Mecatrónica": "mecatronica",
+            "Ingeniería en Logística": "logistica",
+            "todas": "todas"
+        };
+
         userAreas.forEach((area) => {
             const option = document.createElement("option");
-            option.value = area.toLowerCase().replace(/ /g, "_"); // Transformar el área
+            option.value = areaValueMap[area] || area.toLowerCase().replace(/ /g, "_");
             option.textContent = area;
             userCareerSelect.appendChild(option);
         });
@@ -200,21 +261,39 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Manejar el evento de agregar usuario
     addUserSubmit.addEventListener("click", async (event) => {
-        event.preventDefault(); // Evitar el envío del formulario
+        event.preventDefault();
 
         // Obtener los valores de los campos
         const userName = document.getElementById("user-name").value;
         const userEmail = document.getElementById("user-email").value;
-        const userRole = userRoleSelect.value;
+        let userRoleValue = (userRole === "coordinador departamental")
+            ? "tutor"
+            : (userRoleSelect.parentElement.style.display === "none"
+                ? "coordinador departamental"
+                : userRoleSelect.value);
         const userPassword = document.getElementById("user-password").value;
 
-        // Obtener las carreras seleccionadas (como array si es múltiple)
+        // Obtener la carrera seleccionada
         const userCareer = userCareerSelect.hasAttribute("multiple")
             ? Array.from(userCareerSelect.selectedOptions).map(option => option.value)
             : [userCareerSelect.value];
 
+        // Definir carrerasEnviar según el rol y selección
+        let carrerasEnviar = userCareer;
+        if (
+            userCareer[0] === "tic_sistemas"
+        ) {
+            carrerasEnviar = ["tic", "sistemas"];
+        }
+
         // Validar que todos los campos estén llenos
-        if (!userName || !userEmail || !userRole || !userPassword || userCareer.length === 0) {
+        if (
+            !userName ||
+            !userEmail ||
+            !userRoleValue ||
+            !userPassword ||
+            ((!userCareer[0] || userCareer[0] === ""))
+        ) {
             alert("Por favor, complete todos los campos.");
             return;
         }
@@ -223,45 +302,51 @@ document.addEventListener("DOMContentLoaded", () => {
         const userData = {
             nombre: userName,
             correo: userEmail,
-            rol: userRole,
+            rol: userRoleValue,
             contrasena: userPassword,
-            carreras: userCareer,
+            carreras: carrerasEnviar,
         };
 
         console.log("Datos enviados al backend:", userData);
 
+        // Enviar los datos al backend
         try {
             const response = await fetch('/usuarios/agregar', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                 },
-                body: JSON.stringify(userData),
+                body: JSON.stringify({
+                    nombre: userName,
+                    correo: userEmail,
+                    rol: userRoleValue,
+                    contrasena: userPassword,
+                    carreras: carrerasEnviar
+                })
             });
 
             if (response.ok) {
-                const result = await response.json();
-                alert(result.message || "Usuario registrado exitosamente.");
-                // Actualizar la tabla con el nuevo usuario
-                window.usuarios.push(userData);
-                renderTable(window.usuarios);
-                // Cerrar la ventana de diálogo
-                document.getElementById("add-user-dialog").style.display = "none";
-                // Limpiar el formulario
-                document.getElementById("add-user-form").reset();
+                alert("Usuario registrado exitosamente.");
+                addUserDialog.style.display = "none";
+                // Limpiar formulario
+                document.getElementById("user-name").value = "";
+                document.getElementById("user-email").value = "";
+                document.getElementById("user-password").value = "";
+                userRoleSelect.value = "estudiante";
+                userCareerSelect.value = "";
+                // Actualizar la tabla
+                fetchUpdatedUsuarios();
             } else {
-                const errorText = await response.text();
-                console.error("Error del servidor:", errorText);
-                alert("Error al registrar el usuario.");
+                const errorData = await response.json();
+                alert(errorData.message || "Ocurrió un error al registrar el usuario.");
             }
         } catch (error) {
-            console.error("Error:", error);
             alert("Ocurrió un error al registrar el usuario.");
         }
     });
 
-    // Delegación de eventos para detectar click en el botón con el icono "Ver"
+    // Delegación de eventos para detectar click en el botón with the icon "Ver"
     tableContentContainer.addEventListener("click", (event) => {
         const button = event.target.closest("button.action-button");
         if (button) {

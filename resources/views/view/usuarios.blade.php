@@ -133,6 +133,18 @@
                             required />
                     </div>
 
+                    <!-- Lista desplegable para el rol -->
+                    <div class="form-group">
+                        <label for="user-role">Rol</label>
+                        <select id="user-role" name="user-role" required>
+                            <option value="" disabled selected>Seleccione un rol</option>
+                            <!-- <option value="administrador">Administrador</option> -->
+                            <option value="coordinador institucional">Coordinador Institucional</option>
+                            <option value="coordinador departamental">Coordinador Departamental</option>
+                            <option value="tutor">Tutor</option>
+                        </select>
+                    </div>
+
                     <!-- Lista desplegable para la carrera -->
                     <div class="form-group" id="career-group">
                         <label for="user-career">Carrera</label>
@@ -149,17 +161,7 @@
                         </select>
                     </div>
 
-                    <!-- Lista desplegable para el rol -->
-                    <div class="form-group">
-                        <label for="user-role">Rol</label>
-                        <select id="user-role" name="user-role" required>
-                            <option value="" disabled selected>Seleccione un rol</option>
-                            <option value="administrador">Administrador</option>
-                            <option value="coordinador institucional">Coordinador Institucional</option>
-                            <option value="coordinador departamental">Coordinador Departamental</option>
-                            <option value="tutor">Tutor</option>
-                        </select>
-                    </div>
+                    
 
                     <!-- Campo para la contraseña -->
                     <div class="form-group">

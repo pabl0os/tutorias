@@ -183,7 +183,7 @@ Route::post('/usuarios/agregar', function (Request $request) {
         ]);
 
         // Agregar las áreas de adscripción si existen
-        if ($request->rol === 'coordinador departamental' && !empty($request->carreras)) {
+        if (!empty($request->carreras)) {
             foreach ($request->carreras as $area) {
                 $areaTransformed = $areaMap[$area] ?? null; // Transformar el área
                 if ($areaTransformed) {
