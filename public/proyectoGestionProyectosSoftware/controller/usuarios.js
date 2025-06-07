@@ -21,27 +21,26 @@ document.addEventListener("DOMContentLoaded", () => {
                 ${data
                 .map(
                     (row) => `
-                            <tr>
-                                <td>${row.nombre || "Sin nombre"}</td>
-                                <td>${row.correo || "Sin correo"}</td>
-                                <td>${row.rol || "Sin rol"}</td>
-                                <td>${row.carrera || "Sin carrera"}</td>
-                                <td>
-                                    <button class="action-button view-btn" data-id="${row.id}">
-                                        <img src="proyectoGestionProyectosSoftware/icons/botones/ver.svg" alt="Ver" />
-                                    </button>
-                                    <button class="action-button delete-btn" data-id="${row.id}">
-                                        <img src="proyectoGestionProyectosSoftware/icons/botones/eliminar.svg" alt="Eliminar" />
-                                    </button>
-                                </td>
-                            </tr>
-                        `
+                        <tr>
+                            <td>${row.nombre || "Sin nombre"}</td>
+                            <td>${row.correo || "Sin correo"}</td>
+                            <td>${row.rol || "Sin rol"}</td>
+                            <td>${row.carrera || "Sin carrera"}</td>
+                            <td>
+                                <button class="action-button view-btn" data-id="${row.id}">
+                                    <img src="proyectoGestionProyectosSoftware/icons/botones/ver.svg" alt="Ver" />
+                                </button>
+                                <button class="action-button delete-btn" data-id="${row.id}">
+                                    <img src="proyectoGestionProyectosSoftware/icons/botones/eliminar.svg" alt="Eliminar" />
+                                </button>
+                            </td>
+                        </tr>
+                    `
                 )
                 .join("")}
             </tbody>
         `;
-
-        tableContentContainer.appendChild(table);
+        tableContentContainer.appendChild(table); // <-- ¡Esto es lo importante!
     }
 
     // Función para obtener los usuarios actualizados desde el backend
@@ -298,134 +297,62 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Crear el objeto de datos para enviar al backend
+        // Validar campos antes de enviar
+        const nameRegex = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const passwordRegex = /^[A-Za-z0-9!@#$%^&*()_\+\-=\[\]{},]{8,20}$/;
+
+        if (!userName || !nameRegex.test(userName)) {
+            alert("El nombre solo puede contener letras (mayúsculas, minúsculas y acentos).");
+            return;
+        }
+        if (!userEmail || !emailRegex.test(userEmail)) {
+            alert("Ingrese un correo electrónico válido.");
+            return;
+        }
+        if (!userPassword || !passwordRegex.test(userPassword)) {
+            alert("La contraseña debe tener entre 8 y 20 caracteres y solo puede contener letras, números y !@#$%^&*()_+-=[]{},");
+            return;
+        }
+
+        // Si el rol es coordinador departamental, enviar como "tutor" y sin contraseña
+        let apiUserRole = userRoleValue;
+        let apiUserPassword = userPassword;
+        if (userRoleValue === "tutor") {
+            apiUserRole = "coordinador departamental";
+            apiUserPassword = ""; // No enviar contraseña
+        }
+
+        // Preparar los datos para enviar
         const userData = {
             nombre: userName,
             correo: userEmail,
-            rol: userRoleValue,
-            contrasena: userPassword,
-            carreras: carrerasEnviar,
+            rol: apiUserRole,
+            carrera: carrerasEnviar,
+            password: apiUserPassword
         };
 
-        console.log("Datos enviados al backend:", userData);
-
-        // Enviar los datos al backend
         try {
-            const response = await fetch('/usuarios/agregar', {
+            // Enviar los datos al servidor
+            const response = await fetch('/usuarios/guardar', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    nombre: userName,
-                    correo: userEmail,
-                    rol: userRoleValue,
-                    contrasena: userPassword,
-                    carreras: carrerasEnviar
-                })
+                body: JSON.stringify(userData)
             });
 
             if (response.ok) {
-                alert("Usuario registrado exitosamente.");
-                addUserDialog.style.display = "none";
-                // Limpiar formulario
-                document.getElementById("user-name").value = "";
-                document.getElementById("user-email").value = "";
-                document.getElementById("user-password").value = "";
-                userRoleSelect.value = "estudiante";
-                userCareerSelect.value = "";
-                // Actualizar la tabla
-                fetchUpdatedUsuarios();
+                alert("Usuario agregado exitosamente.");
+                addUserDialog.style.display = "none"; // Ocultar la ventana
+                fetchUpdatedUsuarios(); // Actualizar la tabla
             } else {
                 const errorData = await response.json();
-                alert(errorData.message || "Ocurrió un error al registrar el usuario.");
+                alert(`Error al agregar usuario: ${errorData.message}`);
             }
         } catch (error) {
-            alert("Ocurrió un error al registrar el usuario.");
-        }
-    });
-
-    // Delegación de eventos para detectar click en el botón with the icon "Ver"
-    tableContentContainer.addEventListener("click", (event) => {
-        const button = event.target.closest("button.action-button");
-        if (button) {
-            const img = button.querySelector("img");
-            if (img && img.getAttribute("alt") === "Ver") {
-                // Actualizar el src del iframe del documento padre para cargar usuarios-ver.html
-                window.parent.document.querySelector("iframe[name='contenido']").src = "/usuarios-ver";
-            }
-        }
-    });
-
-    // Delegación de eventos para eliminar usuario
-    tableContentContainer.addEventListener("click", async (event) => {
-        const deleteBtn = event.target.closest("button.delete-btn");
-        if (deleteBtn) {
-            const row = deleteBtn.closest("tr"); // Obtener el renglón de la tabla
-            const userName = row.querySelector("td:nth-child(1)").textContent.trim(); // Nombre
-            const userEmail = row.querySelector("td:nth-child(2)").textContent.trim(); // Correo
-
-            const confirmDelete = confirm(`¿Estás seguro de que deseas eliminar al usuario "${userName}" (${userEmail})?`);
-            if (confirmDelete) {
-                try {
-                    const response = await fetch('/usuarios/eliminar', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        },
-                        body: JSON.stringify({ nombre: userName, correo: userEmail }),
-                    });
-
-                    if (response.ok) {
-                        alert("Usuario eliminado exitosamente.");
-                        await fetchUpdatedUsuarios(); // Actualizar los usuarios después de eliminar
-                    } else {
-                        const errorText = await response.text();
-                        console.error("Error del servidor:", errorText);
-                        alert("Error al eliminar el usuario.");
-                    }
-                } catch (error) {
-                    console.error("Error:", error);
-                    alert("Ocurrió un error al eliminar el usuario.");
-                }
-            }
-        }
-    });
-
-
-    // PENDIENTE POR CHECAR ES CUANDO SE LE DA CLICK AL BOTÓN VER
-    tableContentContainer.addEventListener("click", async (event) => {
-        const viewBtn = event.target.closest("button.view-btn");
-        if (viewBtn) {
-            const row = viewBtn.closest("tr"); // Obtener el renglón de la tabla
-            const userName = row.querySelector("td:nth-child(1)").textContent.trim(); // Nombre
-            const userEmail = row.querySelector("td:nth-child(2)").textContent.trim(); // Correo
-            const userRole = row.querySelector("td:nth-child(3)").textContent.trim(); // Rol
-            const userCareer = row.querySelector("td:nth-child(4)").textContent.trim(); // Carrera
-
-            console.log("Datos enviados:", {
-                nombre: userName,
-                correo: userEmail,
-                rol: userRole,
-                carrera: userCareer,
-            });
-            try {
-                // Realizar la consulta al backend para obtener los datos del usuario
-                const response = await fetch(`/usuarios/ver?nombre=${userName}&correo=${userEmail}&rol=${userRole}`);
-
-
-                if (response.ok) {
-                    const userData = await response.json();
-                    console.log("Datos del usuario:", userData); // Imprimir los datos en la consola
-                } else {
-                    const errorText = await response.text();
-                    console.error("Error al obtener los datos del usuario:", errorText);
-                }
-            } catch (error) {
-                console.error("Error al realizar la consulta:", error);
-            }
+            console.error("Error al enviar los datos del usuario:", error);
+            alert("Error al agregar usuario. Por favor, intenta nuevamente más tarde.");
         }
     });
 });
